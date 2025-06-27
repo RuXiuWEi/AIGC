@@ -1,0 +1,1798 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent管理后台</title>
+  <!-- 引入Element UI CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+  <!-- 引入Vue和Element UI JS -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <!-- 引入ECharts用于数据可视化 -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.3.2/dist/echarts.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", Arial, sans-serif;
+      background-color: #f5f7fa;
+    }
+    .app-container {
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 220px;
+      background-color: #304156;
+      color: #bfcbd9;
+      transition: width 0.3s;
+      overflow: hidden;
+    }
+    .main-container {
+      flex: 1;
+      overflow: auto;
+    }
+    .navbar {
+      height: 50px;
+      background-color: #fff;
+      box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+    }
+    .app-main {
+      padding: 20px;
+      min-height: calc(100vh - 90px);
+    }
+    .page-title {
+      font-size: 20px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    .el-card {
+      margin-bottom: 20px;
+    }
+    .config-container {
+      display: flex;
+      gap: 20px;
+    }
+    .nav-side {
+      width: 200px;
+      background: #fff;
+      border-radius: 4px;
+      padding: 10px 0;
+    }
+    .config-main {
+      flex: 1;
+      background: #fff;
+      border-radius: 4px;
+      padding: 20px;
+    }
+    .preview-panel {
+      width: 300px;
+      background: #fff;
+      border-radius: 4px;
+      padding: 20px;
+    }
+    .knowledge-container {
+      display: flex;
+      gap: 20px;
+    }
+    .nav-tree {
+      width: 250px;
+      background: #fff;
+      border-radius: 4px;
+      padding: 10px;
+    }
+    .content-area {
+      flex: 1;
+      background: #fff;
+      border-radius: 4px;
+      padding: 20px;
+    }
+    .memory-manager {
+      display: flex;
+      gap: 20px;
+    }
+    .long-term, .short-term {
+      flex: 1;
+      background: #fff;
+      border-radius: 4px;
+      padding: 20px;
+    }
+    .chart-container {
+      height: 300px;
+      width: 100%;
+    }
+    .el-menu-vertical-demo:not(.el-menu--collapse) {
+      width: 220px;
+    }
+    .logo-container {
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #2b2f3a;
+    }
+    .logo-text {
+      color: #fff;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    .el-dropdown-link {
+      cursor: pointer;
+      color: #409EFF;
+    }
+    .el-icon-arrow-down {
+      font-size: 12px;
+    }
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .search-area {
+      display: flex;
+      gap: 10px;
+    }
+    .status-tag {
+      display: inline-block;
+      padding: 0 8px;
+      height: 24px;
+      line-height: 24px;
+      font-size: 12px;
+      border-radius: 4px;
+    }
+    .status-dev {
+      background: #f0f9eb;
+      color: #67c23a;
+      border: 1px solid #c2e7b0;
+    }
+    .status-prod {
+      background: #ecf5ff;
+      color: #409eff;
+      border: 1px solid #b3d8ff;
+    }
+    .status-test {
+      background: #fdf6ec;
+      color: #e6a23c;
+      border: 1px solid #f5dab1;
+    }
+    .monitor-card {
+      margin-bottom: 20px;
+    }
+    .api-key-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      border-bottom: 1px solid #ebeef5;
+    }
+    .api-key-value {
+      font-family: monospace;
+      background: #f5f7fa;
+      padding: 2px 5px;
+      border-radius: 3px;
+    }
+    .system-config-form {
+      max-width: 600px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="app-container">
+      <!-- 侧边栏导航 -->
+      <div class="sidebar">
+        <div class="logo-container">
+          <span class="logo-text">Agent管理平台</span>
+        </div>
+        <el-menu
+          default-active="1"
+          class="el-menu-vertical-demo"
+          background-color="#304156"
+          text-color="#bfcbd9"
+          active-text-color="#409EFF"
+          @select="handleMenuSelect">
+          <el-menu-item index="dashboard">
+            <i class="el-icon-s-home"></i>
+            <span slot="title">首页概览</span>
+          </el-menu-item>
+          <el-menu-item index="agent">
+            <i class="el-icon-s-platform"></i>
+            <span slot="title">Agent管理</span>
+          </el-menu-item>
+          <el-menu-item index="knowledge">
+            <i class="el-icon-notebook-2"></i>
+            <span slot="title">知识库管理</span>
+          </el-menu-item>
+          <el-menu-item index="monitor">
+            <i class="el-icon-data-line"></i>
+            <span slot="title">运行监控</span>
+          </el-menu-item>
+          <el-menu-item index="setting">
+            <i class="el-icon-setting"></i>
+            <span slot="title">系统设置</span>
+          </el-menu-item>
+        </el-menu>
+      </div>
+
+      <!-- 主内容区 -->
+      <div class="main-container">
+        <div class="navbar">
+          <div style="flex: 1;"></div>
+          <el-dropdown @command="handleCommand">
+            <span class="el-dropdown-link">
+              {{ username }}<i class="el-icon-arrow-down el-icon--right"></i>
+            </span>
+            <el-dropdown-menu slot="dropdown">
+              <el-dropdown-item command="profile">个人中心</el-dropdown-item>
+              <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+            </el-dropdown-menu>
+          </el-dropdown>
+        </div>
+
+        <!-- 动态内容区 -->
+        <div class="app-main">
+          <!-- 首页 -->
+          <div v-if="activeTab === 'dashboard'" class="dashboard">
+            <h2 class="page-title">系统概览</h2>
+            <el-row :gutter="20">
+              <el-col :span="6">
+                <el-card shadow="hover">
+                  <div slot="header">
+                    <span>Agent总数</span>
+                  </div>
+                  <div class="card-content">
+                    <h1 style="font-size: 28px; margin: 10px 0; color: #409EFF;">{{ stats.agentCount }}</h1>
+                    <p>较上周 <span :style="{color: stats.agentGrowth > 0 ? '#67C23A' : '#F56C6C'}">
+                      {{ stats.agentGrowth > 0 ? '+' : '' }}{{ stats.agentGrowth }}%</span>
+                    </p>
+                  </div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover">
+                  <div slot="header">
+                    <span>知识库文档</span>
+                  </div>
+                  <div class="card-content">
+                    <h1 style="font-size: 28px; margin: 10px 0; color: #E6A23C;">{{ stats.docCount }}</h1>
+                    <p>总容量 {{ stats.docSize }}MB</p>
+                  </div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover">
+                  <div slot="header">
+                    <span>今日请求量</span>
+                  </div>
+                  <div class="card-content">
+                    <h1 style="font-size: 28px; margin: 10px 0; color: #67C23A;">{{ stats.requestToday }}</h1>
+                    <p>成功率 {{ stats.successRate }}%</p>
+                  </div>
+                </el-card>
+              </el-col>
+              <el-col :span="6">
+                <el-card shadow="hover">
+                  <div slot="header">
+                    <span>模型消耗</span>
+                  </div>
+                  <div class="card-content">
+                    <h1 style="font-size: 28px; margin: 10px 0; color: #F56C6C;">${{ stats.costToday }}</h1>
+                    <p>本月累计 ${{ stats.costMonth }}</p>
+                  </div>
+                </el-card>
+              </el-col>
+            </el-row>
+
+            <el-row :gutter="20" style="margin-top: 20px;">
+              <el-col :span="12">
+                <el-card>
+                  <div slot="header">
+                    <span>请求量趋势</span>
+                  </div>
+                  <div class="chart-container" ref="requestChart"></div>
+                </el-card>
+              </el-col>
+              <el-col :span="12">
+                <el-card>
+                  <div slot="header">
+                    <span>模型分布</span>
+                  </div>
+                  <div class="chart-container" ref="modelChart"></div>
+                </el-card>
+              </el-col>
+            </el-row>
+
+            <el-row :gutter="20" style="margin-top: 20px;">
+              <el-col :span="24">
+                <el-card>
+                  <div slot="header">
+                    <span>最近活跃Agent</span>
+                    <el-button style="float: right; padding: 3px 0" type="text" @click="viewAllAgents">查看更多</el-button>
+                  </div>
+                  <el-table :data="recentAgents" style="width: 100%">
+                    <el-table-column prop="name" label="Agent名称"></el-table-column>
+                    <el-table-column prop="model" label="模型类型"></el-table-column>
+                    <el-table-column prop="requestCount" label="请求量"></el-table-column>
+                    <el-table-column prop="lastActive" label="最后活跃"></el-table-column>
+                    <el-table-column label="状态">
+                      <template slot-scope="scope">
+                        <el-tag :type="scope.row.status === 'online' ? 'success' : 'info'">
+                          {{ scope.row.status === 'online' ? '运行中' : '已停止' }}
+                        </el-tag>
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                </el-card>
+              </el-col>
+            </el-row>
+          </div>
+
+          <!-- Agent管理页 -->
+          <div v-if="activeTab === 'agent'">
+            <div class="header-bar">
+              <el-button type="primary" @click="showCreateDialog">+ 新建Agent</el-button>
+              <div class="search-area">
+                <el-input placeholder="搜索Agent名称/ID" v-model="agentSearch" clearable @clear="loadAgentList"></el-input>
+                <el-select placeholder="模型类型" v-model="modelFilter" clearable @change="loadAgentList">
+                  <el-option label="全部" value=""></el-option>
+                  <el-option label="GPT-4" value="gpt4"></el-option>
+                  <el-option label="Claude" value="claude"></el-option>
+                  <el-option label="文心一言" value="wenxin"></el-option>
+                </el-select>
+                <el-select placeholder="状态" v-model="statusFilter" clearable @change="loadAgentList">
+                  <el-option label="全部" value=""></el-option>
+                  <el-option label="开发中" value="dev"></el-option>
+                  <el-option label="测试中" value="test"></el-option>
+                  <el-option label="已上线" value="prod"></el-option>
+                </el-select>
+              </div>
+            </div>
+
+            <el-table :data="agentList" border style="width: 100%">
+              <el-table-column prop="id" label="ID" width="120"></el-table-column>
+              <el-table-column prop="name" label="名称"></el-table-column>
+              <el-table-column prop="model" label="模型"></el-table-column>
+              <el-table-column label="状态" width="120">
+                <template slot-scope="scope">
+                  <span class="status-tag" :class="'status-' + scope.row.status">
+                    {{ statusMap[scope.row.status] }}
+                  </span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="updateTime" label="更新时间" width="180"></el-table-column>
+              <el-table-column label="操作" width="220">
+                <template slot-scope="scope">
+                  <el-button size="mini" @click="editAgent(scope.row)">编辑</el-button>
+                  <el-button size="mini" type="primary" @click="testAgent(scope.row)">测试</el-button>
+                  <el-dropdown @command="handleAgentCommand($event, scope.row)">
+                    <el-button size="mini">
+                      更多<i class="el-icon-arrow-down el-icon--right"></i>
+                    </el-button>
+                    <el-dropdown-menu slot="dropdown">
+                      <el-dropdown-item command="publish">发布</el-dropdown-item>
+                      <el-dropdown-item command="clone">克隆</el-dropdown-item>
+                      <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
+                    </el-dropdown-menu>
+                  </el-dropdown>
+                </template>
+              </el-table-column>
+            </el-table>
+
+            <el-pagination
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+              :current-page="pagination.currentPage"
+              :page-sizes="[10, 20, 50, 100]"
+              :page-size="pagination.pageSize"
+              layout="total, sizes, prev, pager, next, jumper"
+              :total="pagination.total"
+              style="margin-top: 20px;">
+            </el-pagination>
+          </div>
+
+          <!-- Agent创建/编辑对话框 -->
+          <el-dialog :title="(editMode ? '编辑' : '新建') + 'Agent'" :visible.sync="agentDialogVisible" width="70%">
+            <el-tabs v-model="activeConfigTab">
+              <el-tab-pane label="基础信息" name="basic">
+                <el-form :model="agentForm" label-width="120px" :rules="agentRules" ref="agentForm">
+                  <el-form-item label="Agent名称" prop="name">
+                    <el-input v-model="agentForm.name" placeholder="请输入Agent名称"></el-input>
+                  </el-form-item>
+                  <el-form-item label="描述" prop="description">
+                    <el-input type="textarea" v-model="agentForm.description" placeholder="请输入Agent功能描述"></el-input>
+                  </el-form-item>
+                  <el-form-item label="业务领域" prop="domain">
+                    <el-select v-model="agentForm.domain" placeholder="请选择业务领域" style="width: 100%">
+                      <el-option label="客户服务" value="customer"></el-option>
+                      <el-option label="数据分析" value="analytics"></el-option>
+                      <el-option label="内容创作" value="content"></el-option>
+                      <el-option label="决策支持" value="decision"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="模型类型" prop="model">
+                    <el-select v-model="agentForm.model" placeholder="请选择模型类型" style="width: 100%">
+                      <el-option label="GPT-4" value="gpt4"></el-option>
+                      <el-option label="Claude 3" value="claude3"></el-option>
+                      <el-option label="文心一言4.0" value="wenxin4"></el-option>
+                      <el-option label="通义千问" value="qwen"></el-option>
+                    </el-select>
+                  </el-form-item>
+                </el-form>
+              </el-tab-pane>
+
+              <el-tab-pane label="模型配置" name="model">
+                <div class="config-container">
+                  <div class="nav-side">
+                    <el-menu default-active="1" class="el-menu-vertical-demo" @select="handleConfigMenuSelect">
+                      <el-menu-item index="1">基础参数</el-menu-item>
+                      <el-menu-item index="2">Prompt模板</el-menu-item>
+                      <el-menu-item index="3">知识库关联</el-menu-item>
+                      <el-menu-item index="4">插件管理</el-menu-item>
+                    </el-menu>
+                  </div>
+                  <div class="config-main">
+                    <div v-if="activeConfigPane === '1'">
+                      <h3>模型参数配置</h3>
+                      <el-form label-width="120px">
+                        <el-form-item label="温度值">
+                          <el-slider v-model="agentForm.temperature" :min="0" :max="1" :step="0.1" show-input></el-slider>
+                        </el-form-item>
+                        <el-form-item label="最大token数">
+                          <el-input-number v-model="agentForm.maxTokens" :min="100" :max="4000"></el-input-number>
+                        </el-form-item>
+                        <el-form-item label="top_p">
+                          <el-slider v-model="agentForm.topP" :min="0" :max="1" :step="0.1" show-input></el-slider>
+                        </el-form-item>
+                        <el-form-item label="频率惩罚">
+                          <el-slider v-model="agentForm.frequencyPenalty" :min="0" :max="2" :step="0.1" show-input></el-slider>
+                        </el-form-item>
+                        <el-form-item label="存在惩罚">
+                          <el-slider v-model="agentForm.presencePenalty" :min="0" :max="2" :step="0.1" show-input></el-slider>
+                        </el-form-item>
+                      </el-form>
+                    </div>
+                    <div v-if="activeConfigPane === '2'">
+                      <h3>Prompt模板配置</h3>
+                      <el-form label-width="120px">
+                        <el-form-item label="系统Prompt">
+                          <el-input type="textarea" :rows="5" v-model="agentForm.systemPrompt" placeholder="输入系统角色设定"></el-input>
+                        </el-form-item>
+                        <el-form-item label="用户Prompt模板">
+                          <el-input type="textarea" :rows="5" v-model="agentForm.userPrompt" placeholder="输入用户输入模板"></el-input>
+                        </el-form-item>
+                      </el-form>
+                    </div>
+                    <div v-if="activeConfigPane === '3'">
+                      <h3>知识库关联</h3>
+                      <el-form label-width="120px">
+                        <el-form-item label="关联知识库">
+                          <el-select v-model="agentForm.knowledgeIds" multiple placeholder="请选择知识库" style="width: 100%">
+                            <el-option v-for="kb in knowledgeBases" :key="kb.id" :label="kb.name" :value="kb.id"></el-option>
+                          </el-select>
+                        </el-form-item>
+                        <el-form-item label="检索策略">
+                          <el-radio-group v-model="agentForm.retrievalStrategy">
+                            <el-radio label="vector">向量检索</el-radio>
+                            <el-radio label="hybrid">混合检索</el-radio>
+                            <el-radio label="agentic">智能路由</el-radio>
+                          </el-radio-group>
+                        </el-form-item>
+                        <el-form-item label="top_k" v-if="agentForm.retrievalStrategy !== 'agentic'">
+                          <el-input-number v-model="agentForm.topK" :min="1" :max="10"></el-input-number>
+                        </el-form-item>
+                      </el-form>
+                    </div>
+                    <div v-if="activeConfigPane === '4'">
+                      <h3>插件管理</h3>
+                      <el-table :data="plugins" style="width: 100%">
+                        <el-table-column type="selection" width="55"></el-table-column>
+                        <el-table-column prop="name" label="插件名称"></el-table-column>
+                        <el-table-column prop="description" label="描述"></el-table-column>
+                        <el-table-column label="状态">
+                          <template slot-scope="scope">
+                            <el-switch v-model="scope.row.enabled" @change="togglePlugin(scope.row)"></el-switch>
+                          </template>
+                        </el-table-column>
+                      </el-table>
+                    </div>
+                  </div>
+                  <div class="preview-panel">
+                    <h4>配置预览</h4>
+                    <pre>{{ JSON.stringify(agentForm, null, 2) }}</pre>
+                  </div>
+                </div>
+              </el-tab-pane>
+
+              <el-tab-pane label="知识库配置" name="knowledge">
+                <div class="config-container">
+                  <div class="nav-side">
+                    <el-menu default-active="1" class="el-menu-vertical-demo" @select="handleKbConfigMenuSelect">
+                      <el-menu-item index="1">RAG配置</el-menu-item>
+                      <el-menu-item index="2">检索策略</el-menu-item>
+                      <el-menu-item index="3">记忆管理</el-menu-item>
+                    </el-menu>
+                  </div>
+                  <div class="config-main">
+                    <div v-if="activeKbConfigPane === '1'">
+                      <h3>RAG管道配置</h3>
+                      <el-form label-width="120px">
+                        <el-form-item label="关联知识库">
+                          <el-select v-model="agentForm.knowledgeIds" multiple placeholder="请选择知识库" style="width: 100%">
+                            <el-option v-for="kb in knowledgeBases" :key="kb.id" :label="kb.name" :value="kb.id"></el-option>
+                          </el-select>
+                        </el-form-item>
+                        <el-form-item label="检索策略">
+                          <el-radio-group v-model="agentForm.retrievalStrategy">
+                            <el-radio label="vector">向量检索</el-radio>
+                            <el-radio label="hybrid">混合检索</el-radio>
+                            <el-radio label="agentic">智能路由</el-radio>
+                          </el-radio-group>
+                        </el-form-item>
+                        <el-form-item label="top_k" v-if="agentForm.retrievalStrategy !== 'agentic'">
+                          <el-input-number v-model="agentForm.topK" :min="1" :max="10"></el-input-number>
+                        </el-form-item>
+                      </el-form>
+                    </div>
+                    <div v-if="activeKbConfigPane === '2'">
+                      <h3>检索策略配置</h3>
+                      <el-form label-width="120px">
+                        <el-form-item label="语义路由规则">
+                          <el-button type="primary" @click="addRouteRule">添加规则</el-button>
+                          <el-table :data="routeRules" style="width: 100%; margin-top: 10px;">
+                            <el-table-column prop="condition" label="条件"></el-table-column>
+                            <el-table-column prop="target" label="目标"></el-table-column>
+                            <el-table-column label="操作" width="100">
+                              <template slot-scope="scope">
+                                <el-button size="mini" type="danger" @click="removeRouteRule(scope.$index)">删除</el-button>
+                              </template>
+                            </el-table-column>
+                          </el-table>
+                        </el-form-item>
+                        <el-form-item label="召回融合权重">
+                          <el-slider v-model="agentForm.retrievalWeight" range :min="0" :max="1" :step="0.1" show-input></el-slider>
+                        </el-form-item>
+                      </el-form>
+                    </div>
+                    <div v-if="activeKbConfigPane === '3'">
+                      <h3>记忆管理</h3>
+                      <el-form label-width="120px">
+                        <el-form-item label="记忆策略">
+                          <el-checkbox-group v-model="agentForm.memoryStrategies">
+                            <el-checkbox label="short">短期记忆(对话)</el-checkbox>
+                            <el-checkbox label="long">长期记忆(知识库)</el-checkbox>
+                            <el-checkbox label="summary">自动摘要</el-checkbox>
+                          </el-checkbox-group>
+                        </el-form-item>
+                        <el-form-item label="记忆窗口">
+                          <el-input-number v-model="agentForm.memoryWindow" :min="1" :max="20"></el-input-number>
+                          <span style="margin-left: 10px;">轮对话</span>
+                        </el-form-item>
+                        <el-form-item label="摘要长度">
+                          <el-input-number v-model="agentForm.summaryLength" :min="50" :max="500"></el-input-number>
+                          <span style="margin-left: 10px;">字符</span>
+                        </el-form-item>
+                      </el-form>
+                    </div>
+                  </div>
+                  <div class="preview-panel">
+                    <h4>知识库预览</h4>
+                    <el-table :data="selectedKnowledgeBases" height="300" style="width: 100%">
+                      <el-table-column prop="name" label="名称"></el-table-column>
+                      <el-table-column prop="docCount" label="文档数"></el-table-column>
+                    </el-table>
+                  </div>
+                </div>
+              </el-tab-pane>
+            </el-tabs>
+            <span slot="footer" class="dialog-footer">
+              <el-button @click="agentDialogVisible = false">取 消</el-button>
+              <el-button type="primary" @click="saveAgent">确 定</el-button>
+            </span>
+          </el-dialog>
+
+          <!-- 知识库管理页 -->
+          <div v-if="activeTab === 'knowledge'">
+            <h2 class="page-title">知识库管理</h2>
+            <div class="header-bar">
+              <el-button type="primary" @click="showCreateKbDialog">+ 新建知识库</el-button>
+              <div class="search-area">
+                <el-input placeholder="搜索知识库名称" v-model="kbSearch" clearable @clear="loadKnowledgeBases"></el-input>
+                <el-select placeholder="类型" v-model="kbTypeFilter" clearable @change="loadKnowledgeBases">
+                  <el-option label="全部" value=""></el-option>
+                  <el-option label="向量库" value="vector"></el-option>
+                  <el-option label="知识图谱" value="graph"></el-option>
+                </el-select>
+              </div>
+            </div>
+
+            <el-table :data="knowledgeBases" border style="width: 100%">
+              <el-table-column prop="name" label="名称"></el-table-column>
+              <el-table-column label="类型" width="120">
+                <template slot-scope="scope">
+                  <el-tag :type="scope.row.type === 'vector' ? 'success' : 'warning'">
+                    {{ scope.row.type === 'vector' ? '向量库' : '知识图谱' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="docCount" label="文档数" width="120"></el-table-column>
+              <el-table-column prop="updateTime" label="更新时间" width="180"></el-table-column>
+              <el-table-column label="状态" width="120">
+                <template slot-scope="scope">
+                  <el-tag :type="scope.row.status === 'ready' ? 'success' : 'info'">
+                    {{ scope.row.status === 'ready' ? '已就绪' : '处理中' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="220">
+                <template slot-scope="scope">
+                  <el-button size="mini" @click="viewKnowledgeBase(scope.row)">查看</el-button>
+                  <el-button size="mini" type="primary" @click="editKnowledgeBase(scope.row)">编辑</el-button>
+                  <el-dropdown @command="handleKbCommand($event, scope.row)">
+                    <el-button size="mini">
+                      更多<i class="el-icon-arrow-down el-icon--right"></i>
+                    </el-button>
+                    <el-dropdown-menu slot="dropdown">
+                      <el-dropdown-item command="upload">上传文档</el-dropdown-item>
+                      <el-dropdown-item command="export">导出</el-dropdown-item>
+                      <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
+                    </el-dropdown-menu>
+                  </el-dropdown>
+                </template>
+              </el-table-column>
+            </el-table>
+
+            <el-pagination
+              @size-change="handleKbSizeChange"
+              @current-change="handleKbCurrentChange"
+              :current-page="kbPagination.currentPage"
+              :page-sizes="[10, 20, 50, 100]"
+              :page-size="kbPagination.pageSize"
+              layout="total, sizes, prev, pager, next, jumper"
+              :total="kbPagination.total"
+              style="margin-top: 20px;">
+            </el-pagination>
+          </div>
+
+          <!-- 知识库详情对话框 -->
+          <el-dialog :title="'知识库详情 - ' + currentKb.name" :visible.sync="kbDetailVisible" width="80%">
+            <el-tabs v-model="activeKbTab">
+              <el-tab-pane label="文档管理" name="docs">
+                <div style="margin-bottom: 20px;">
+                  <el-upload
+                    action="/api/knowledge/upload"
+                    :before-upload="beforeUpload"
+                    :on-success="handleUploadSuccess"
+                    :file-list="fileList">
+                    <el-button type="primary">上传文档</el-button>
+                    <div slot="tip" class="el-upload__tip">支持PDF/Word/Markdown格式，单个文件不超过50MB</div>
+                  </el-upload>
+                </div>
+                <el-table :data="kbDocuments" border style="width: 100%">
+                  <el-table-column prop="name" label="文件名"></el-table-column>
+                  <el-table-column prop="size" label="大小" width="120"></el-table-column>
+                  <el-table-column prop="status" label="状态" width="120">
+                    <template slot-scope="scope">
+                      <el-tag :type="scope.row.status === 'processed' ? 'success' : 'info'">
+                        {{ scope.row.status === 'processed' ? '已处理' : '处理中' }}
+                      </el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="updateTime" label="更新时间" width="180"></el-table-column>
+                  <el-table-column label="操作" width="180">
+                    <template slot-scope="scope">
+                      <el-button size="mini" @click="previewDoc(scope.row)">预览</el-button>
+                      <el-button size="mini" type="danger" @click="deleteDoc(scope.row)">删除</el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </el-tab-pane>
+
+              <el-tab-pane label="向量化配置" name="vector">
+                <el-form label-width="150px">
+                  <el-form-item label="嵌入模型">
+                    <el-select v-model="currentKb.embeddingModel" style="width: 100%">
+                      <el-option label="BGE-large" value="bge-large"></el-option>
+                      <el-option label="text2vec" value="text2vec"></el-option>
+                      <el-option label="OpenAI text-embedding" value="openai"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="分块大小">
+                    <el-input-number v-model="currentKb.chunkSize" :min="100" :max="2000"></el-input-number>
+                    <span style="margin-left: 10px;">字符</span>
+                  </el-form-item>
+                  <el-form-item label="分块重叠">
+                    <el-input-number v-model="currentKb.chunkOverlap" :min="0" :max="500"></el-input-number>
+                    <span style="margin-left: 10px;">字符</span>
+                  </el-form-item>
+                  <el-form-item label="向量数据库">
+                    <el-select v-model="currentKb.vectorDb" style="width: 100%">
+                      <el-option label="Qdrant" value="qdrant"></el-option>
+                      <el-option label="Milvus" value="milvus"></el-option>
+                      <el-option label="PgVector" value="pgvector"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="相似度算法">
+                    <el-select v-model="currentKb.similarity" style="width: 100%">
+                      <el-option label="余弦相似度" value="cosine"></el-option>
+                      <el-option label="欧式距离" value="euclidean"></el-option>
+                      <el-option label="点积" value="dot"></el-option>
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button type="primary" @click="reprocessKb">重新处理</el-button>
+                    <el-button @click="testVectorSearch">测试检索</el-button>
+                  </el-form-item>
+                </el-form>
+              </el-tab-pane>
+
+              <el-tab-pane label="检索测试" name="test">
+                <div style="display: flex; gap: 20px;">
+                  <div style="flex: 1;">
+                    <el-input
+                      type="textarea"
+                      :rows="5"
+                      placeholder="输入测试查询"
+                      v-model="testQuery">
+                    </el-input>
+                    <el-button type="primary" style="margin-top: 10px;" @click="runTestQuery">执行测试</el-button>
+                    <div style="margin-top: 10px;">
+                      <el-checkbox v-model="showScore">显示相似度分数</el-checkbox>
+                      <el-input-number v-model="testTopK" :min="1" :max="10" style="margin-left: 10px;"></el-input-number>
+                    </div>
+                  </div>
+                  <div style="flex: 1;">
+                    <h4>检索结果 (top {{ testTopK }})</h4>
+                    <el-table :data="testResults" height="300" border>
+                      <el-table-column v-if="showScore" prop="score" label="相似度" width="100">
+                        <template slot-scope="scope">
+                          {{ scope.row.score.toFixed(4) }}
+                        </template>
+                      </el-table-column>
+                      <el-table-column prop="content" label="内容"></el-table-column>
+                      <el-table-column prop="source" label="来源" width="120"></el-table-column>
+                    </el-table>
+                  </div>
+                </div>
+              </el-tab-pane>
+            </el-tabs>
+          </el-dialog>
+
+          <!-- 运行监控页 -->
+          <div v-if="activeTab === 'monitor'">
+            <h2 class="page-title">运行监控</h2>
+            
+            <el-card class="monitor-card">
+              <div slot="header">
+                <span>实时指标</span>
+                <el-button style="float: right; padding: 3px 0" type="text" @click="refreshMetrics">刷新</el-button>
+              </div>
+              <el-row :gutter="20">
+                <el-col :span="6">
+                  <div class="metric-item">
+                    <div class="metric-label">QPS</div>
+                    <div class="metric-value">{{ metrics.qps }}</div>
+                    <div class="metric-trend">
+                      <i class="el-icon-top" style="color: #f56c6c;"></i>
+                      <span style="color: #f56c6c;">{{ metrics.qpsTrend }}%</span>
+                    </div>
+                  </div>
+                </el-col>
+                <el-col :span="6">
+                  <div class="metric-item">
+                    <div class="metric-label">平均响应时间</div>
+                    <div class="metric-value">{{ metrics.avgResponse }}ms</div>
+                    <div class="metric-trend">
+                      <i class="el-icon-bottom" style="color: #67c23a;"></i>
+                      <span style="color: #67c23a;">{{ metrics.responseTrend }}%</span>
+                    </div>
+                  </div>
+                </el-col>
+                <el-col :span="6">
+                  <div class="metric-item">
+                    <div class="metric-label">错误率</div>
+                    <div class="metric-value">{{ metrics.errorRate }}%</div>
+                    <div class="metric-trend">
+                      <i class="el-icon-top" style="color: #f56c6c;"></i>
+                      <span style="color: #f56c6c;">{{ metrics.errorTrend }}%</span>
+                    </div>
+                  </div>
+                </el-col>
+                <el-col :span="6">
+                  <div class="metric-item">
+                    <div class="metric-label">Token消耗</div>
+                    <div class="metric-value">{{ metrics.tokens }}/min</div>
+                    <div class="metric-trend">
+                      <i class="el-icon-top" style="color: #f56c6c;"></i>
+                      <span style="color: #f56c6c;">{{ metrics.tokenTrend }}%</span>
+                    </div>
+                  </div>
+                </el-col>
+              </el-row>
+            </el-card>
+
+            <el-card class="monitor-card">
+              <div slot="header">
+                <span>请求趋势</span>
+                <el-radio-group v-model="timeRange" size="mini" style="float: right;" @change="loadRequestTrend">
+                  <el-radio-button label="1h">1小时</el-radio-button>
+                  <el-radio-button label="24h">24小时</el-radio-button>
+                  <el-radio-button label="7d">7天</el-radio-button>
+                </el-radio-group>
+              </div>
+              <div class="chart-container" ref="requestTrendChart"></div>
+            </el-card>
+
+            <el-card class="monitor-card">
+              <div slot="header">
+                <span>错误日志</span>
+                <el-button style="float: right; padding: 3px 0" type="text" @click="loadErrorLogs">刷新</el-button>
+              </div>
+              <el-table :data="errorLogs" height="300" border>
+                <el-table-column prop="time" label="时间" width="180"></el-table-column>
+                <el-table-column prop="agent" label="Agent" width="150"></el-table-column>
+                <el-table-column prop="error" label="错误信息"></el-table-column>
+                <el-table-column label="操作" width="100">
+                  <template slot-scope="scope">
+                    <el-button size="mini" @click="viewErrorDetail(scope.row)">详情</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-card>
+
+            <el-card class="monitor-card">
+              <div slot="header">
+                <span>模型调用分布</span>
+              </div>
+              <div class="chart-container" ref="modelCallChart"></div>
+            </el-card>
+          </div>
+
+          <!-- 系统设置页 -->
+          <div v-if="activeTab === 'setting'">
+            <h2 class="page-title">系统设置</h2>
+            
+            <el-tabs v-model="activeSettingTab">
+              <el-tab-pane label="API密钥" name="api">
+                <el-card>
+                  <div slot="header">
+                    <span>API密钥管理</span>
+                    <el-button style="float: right; padding: 3px 0" type="text" @click="generateApiKey">生成新密钥</el-button>
+                  </div>
+                  <el-table :data="apiKeys" border>
+                    <el-table-column prop="name" label="名称" width="150"></el-table-column>
+                    <el-table-column prop="key" label="密钥">
+                      <template slot-scope="scope">
+                        <span class="api-key-value">{{ scope.row.key }}</span>
+                        <el-button type="text" @click="copyApiKey(scope.row.key)">复制</el-button>
+                      </template>
+                    </el-table-column>
+                    <el-table-column prop="created" label="创建时间" width="180"></el-table-column>
+                    <el-table-column prop="lastUsed" label="最后使用" width="180"></el-table-column>
+                    <el-table-column label="状态" width="100">
+                      <template slot-scope="scope">
+                        <el-switch v-model="scope.row.active" @change="toggleApiKey(scope.row)"></el-switch>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="120">
+                      <template slot-scope="scope">
+                        <el-button size="mini" type="danger" @click="deleteApiKey(scope.row)">删除</el-button>
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                </el-card>
+              </el-tab-pane>
+
+              <el-tab-pane label="全局配置" name="config">
+                <el-card>
+                  <div slot="header">
+                    <span>系统参数</span>
+                  </div>
+                  <el-form class="system-config-form" label-width="150px">
+                    <el-form-item label="API基础URL">
+                      <el-input v-model="systemConfig.apiBaseUrl"></el-input>
+                    </el-form-item>
+                    <el-form-item label="默认超时时间">
+                      <el-input-number v-model="systemConfig.timeout" :min="1" :max="60"></el-input-number>
+                      <span style="margin-left: 10px;">秒</span>
+                    </el-form-item>
+                    <el-form-item label="请求限流">
+                      <el-input-number v-model="systemConfig.rateLimit" :min="1" :max="1000"></el-input-number>
+                      <span style="margin-left: 10px;">请求/秒</span>
+                    </el-form-item>
+                    <el-form-item label="日志保留天数">
+                      <el-input-number v-model="systemConfig.logRetention" :min="1" :max="365"></el-input-number>
+                    </el-form-item>
+                    <el-form-item label="自动备份">
+                      <el-switch v-model="systemConfig.autoBackup"></el-switch>
+                    </el-form-item>
+                    <el-form-item label="备份时间" v-if="systemConfig.autoBackup">
+                      <el-time-picker v-model="systemConfig.backupTime" placeholder="选择时间"></el-time-picker>
+                    </el-form-item>
+                    <el-form-item>
+                      <el-button type="primary" @click="saveSystemConfig">保存配置</el-button>
+                    </el-form-item>
+                  </el-form>
+                </el-card>
+              </el-tab-pane>
+
+              <el-tab-pane label="用户管理" name="user">
+                <el-card>
+                  <div slot="header">
+                    <span>用户列表</span>
+                    <el-button style="float: right; padding: 3px 0" type="text" @click="showAddUserDialog">添加用户</el-button>
+                  </div>
+                  <el-table :data="users" border>
+                    <el-table-column prop="username" label="用户名" width="150"></el-table-column>
+                    <el-table-column prop="role" label="角色" width="120"></el-table-column>
+                    <el-table-column prop="lastLogin" label="最后登录" width="180"></el-table-column>
+                    <el-table-column label="状态" width="100">
+                      <template slot-scope="scope">
+                        <el-tag :type="scope.row.active ? 'success' : 'info'">
+                          {{ scope.row.active ? '活跃' : '禁用' }}
+                        </el-tag>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="180">
+                      <template slot-scope="scope">
+                        <el-button size="mini" @click="editUser(scope.row)">编辑</el-button>
+                        <el-button size="mini" type="danger" @click="deleteUser(scope.row)">删除</el-button>
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                </el-card>
+              </el-tab-pane>
+
+              <el-tab-pane label="系统信息" name="info">
+                <el-card>
+                  <div slot="header">
+                    <span>系统状态</span>
+                  </div>
+                  <el-descriptions :column="2" border>
+                    <el-descriptions-item label="系统版本">v1.2.0</el-descriptions-item>
+                    <el-descriptions-item label="启动时间">2023-10-15 08:30:45</el-descriptions-item>
+                    <el-descriptions-item label="运行时长">12天 5小时 30分钟</el-descriptions-item>
+                    <el-descriptions-item label="CPU使用率">32%</el-descriptions-item>
+                    <el-descriptions-item label="内存使用">4.2GB/16GB</el-descriptions-item>
+                    <el-descriptions-item label="磁盘空间">125GB/500GB</el-descriptions-item>
+                  </el-descriptions>
+                </el-card>
+
+                <el-card style="margin-top: 20px;">
+                  <div slot="header">
+                    <span>服务状态</span>
+                  </div>
+                  <el-table :data="services" border>
+                    <el-table-column prop="name" label="服务名称" width="200"></el-table-column>
+                    <el-table-column prop="version" label="版本" width="120"></el-table-column>
+                    <el-table-column prop="status" label="状态" width="120">
+                      <template slot-scope="scope">
+                        <el-tag :type="scope.row.status === 'running' ? 'success' : 'danger'">
+                          {{ scope.row.status === 'running' ? '运行中' : '停止' }}
+                        </el-tag>
+                      </template>
+                    </el-table-column>
+                    <el-table-column prop="uptime" label="运行时间" width="180"></el-table-column>
+                    <el-table-column label="操作" width="120">
+                      <template slot-scope="scope">
+                        <el-button size="mini" @click="restartService(scope.row)" v-if="scope.row.status === 'running'">重启</el-button>
+                        <el-button size="mini" type="success" @click="startService(scope.row)" v-else>启动</el-button>
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                </el-card>
+              </el-tab-pane>
+            </el-tabs>
+
+            <!-- 添加用户对话框 -->
+            <el-dialog title="添加用户" :visible.sync="userDialogVisible" width="50%">
+              <el-form :model="userForm" label-width="100px">
+                <el-form-item label="用户名" required>
+                  <el-input v-model="userForm.username"></el-input>
+                </el-form-item>
+                <el-form-item label="密码" required>
+                  <el-input v-model="userForm.password" type="password"></el-input>
+                </el-form-item>
+                <el-form-item label="确认密码" required>
+                  <el-input v-model="userForm.confirmPassword" type="password"></el-input>
+                </el-form-item>
+                <el-form-item label="角色">
+                  <el-select v-model="userForm.role">
+                    <el-option label="管理员" value="admin"></el-option>
+                    <el-option label="开发者" value="developer"></el-option>
+                    <el-option label="观察者" value="viewer"></el-option>
+                  </el-select>
+                </el-form-item>
+                <el-form-item label="状态">
+                  <el-switch v-model="userForm.active"></el-switch>
+                </el-form-item>
+              </el-form>
+              <span slot="footer" class="dialog-footer">
+                <el-button @click="userDialogVisible = false">取 消</el-button>
+                <el-button type="primary" @click="saveUser">确 定</el-button>
+              </span>
+            </el-dialog>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    new Vue({
+      el: '#app',
+      data() {
+        return {
+          username: '管理员',
+          activeTab: 'dashboard',
+          statusMap: {
+            dev: '开发中',
+            test: '测试中',
+            prod: '已上线'
+          },
+          // 首页数据
+          stats: {
+            agentCount: 28,
+            agentGrowth: 12.5,
+            docCount: 156,
+            docSize: 342,
+            requestToday: 1245,
+            successRate: 98.3,
+            costToday: 56.8,
+            costMonth: 1289.5
+          },
+          recentAgents: [
+            { name: '客户服务助手', model: 'GPT-4', requestCount: 342, lastActive: '10分钟前', status: 'online' },
+            { name: '数据分析Agent', model: 'Claude 3', requestCount: 128, lastActive: '30分钟前', status: 'online' },
+            { name: '内容创作助手', model: '文心一言4.0', requestCount: 89, lastActive: '2小时前', status: 'online' },
+            { name: '决策支持系统', model: 'GPT-4', requestCount: 56, lastActive: '5小时前', status: 'offline' }
+          ],
+          // Agent管理数据
+          agentList: [],
+          agentSearch: '',
+          modelFilter: '',
+          statusFilter: '',
+          pagination: {
+            currentPage: 1,
+            pageSize: 10,
+            total: 0
+          },
+          agentDialogVisible: false,
+          editMode: false,
+          activeConfigTab: 'basic',
+          activeConfigPane: '1',
+          activeKbConfigPane: '1',
+          agentForm: {
+            id: '',
+            name: '',
+            description: '',
+            domain: '',
+            model: 'gpt4',
+            temperature: 0.7,
+            maxTokens: 2000,
+            topP: 1,
+            frequencyPenalty: 0,
+            presencePenalty: 0,
+            systemPrompt: '',
+            userPrompt: '',
+            knowledgeIds: [],
+            retrievalStrategy: 'vector',
+            topK: 3,
+            retrievalWeight: [0.7, 0.3],
+            memoryStrategies: ['short', 'long'],
+            memoryWindow: 5,
+            summaryLength: 200
+          },
+          agentRules: {
+            name: [
+              { required: true, message: '请输入Agent名称', trigger: 'blur' }
+            ],
+            model: [
+              { required: true, message: '请选择模型类型', trigger: 'change' }
+            ]
+          },
+          plugins: [
+            { name: '天气查询', description: '获取实时天气信息', enabled: true },
+            { name: '计算器', description: '执行数学计算', enabled: true },
+            { name: '股票查询', description: '获取股票市场数据', enabled: false },
+            { name: '翻译工具', description: '多语言翻译', enabled: true }
+          ],
+          routeRules: [
+            { condition: '包含数字ID', target: 'CRM系统' },
+            { condition: '涉及产品参数', target: '向量检索' },
+            { condition: '需要关联关系', target: '知识图谱' }
+          ],
+          // 知识库数据
+          knowledgeBases: [],
+          kbSearch: '',
+          kbTypeFilter: '',
+          kbPagination: {
+            currentPage: 1,
+            pageSize: 10,
+            total: 0
+          },
+          kbDetailVisible: false,
+          currentKb: {
+            id: '',
+            name: '',
+            type: 'vector',
+            embeddingModel: 'bge-large',
+            chunkSize: 1024,
+            chunkOverlap: 200,
+            vectorDb: 'qdrant',
+            similarity: 'cosine'
+          },
+          kbDocuments: [],
+          fileList: [],
+          activeKbTab: 'docs',
+          testQuery: '',
+          testTopK: 3,
+          testResults: [],
+          showScore: true,
+          // 运行监控数据
+          metrics: {
+            qps: 24,
+            qpsTrend: 5.2,
+            avgResponse: 356,
+            responseTrend: -3.1,
+            errorRate: 1.2,
+            errorTrend: 0.8,
+            tokens: 12500,
+            tokenTrend: 12.5
+          },
+          timeRange: '1h',
+          errorLogs: [
+            { time: '2023-10-18 14:23:45', agent: '客户服务助手', error: 'API调用超时' },
+            { time: '2023-10-18 13:45:12', agent: '数据分析Agent', error: '无效的查询参数' },
+            { time: '2023-10-18 12:30:56', agent: '内容创作助手', error: '模型响应格式错误' },
+            { time: '2023-10-18 11:15:33', agent: '决策支持系统', error: '知识库连接失败' }
+          ],
+          // 系统设置数据
+          activeSettingTab: 'api',
+          apiKeys: [
+            { name: '主密钥', key: 'sk-3e5f7g9i1k3m5o7q9s1u3w5y7', created: '2023-10-01 09:00:00', lastUsed: '2023-10-18 14:30:22', active: true },
+            { name: '测试密钥', key: 'sk-2d4f6h8j0l2n4p6r8t0v2x4z6', created: '2023-10-15 14:20:10', lastUsed: '2023-10-17 18:45:33', active: false }
+          ],
+          systemConfig: {
+            apiBaseUrl: 'https://api.agent-platform.com/v1',
+            timeout: 30,
+            rateLimit: 100,
+            logRetention: 30,
+            autoBackup: true,
+            backupTime: new Date(2023, 9, 18, 2, 0, 0)
+          },
+          users: [
+            { username: 'admin', role: 'admin', lastLogin: '2023-10-18 14:25:33', active: true },
+            { username: 'dev1', role: 'developer', lastLogin: '2023-10-18 10:15:22', active: true },
+            { username: 'viewer1', role: 'viewer', lastLogin: '2023-10-17 16:30:45', active: false }
+          ],
+          services: [
+            { name: 'API服务', version: '1.2.0', status: 'running', uptime: '12天 5小时' },
+            { name: '任务调度', version: '1.1.3', status: 'running', uptime: '12天 5小时' },
+            { name: '向量数据库', version: '1.0.8', status: 'running', uptime: '10天 3小时' },
+            { name: '监控服务', version: '1.0.5', status: 'stopped', uptime: '-' }
+          ],
+          userDialogVisible: false,
+          userForm: {
+            username: '',
+            password: '',
+            confirmPassword: '',
+            role: 'developer',
+            active: true
+          }
+        }
+      },
+      computed: {
+        selectedKnowledgeBases() {
+          return this.knowledgeBases.filter(kb => this.agentForm.knowledgeIds.includes(kb.id));
+        }
+      },
+      mounted() {
+        this.loadAgentList();
+        this.loadKnowledgeBases();
+        this.initCharts();
+      },
+      methods: {
+        // 导航菜单切换
+        handleMenuSelect(index) {
+          this.activeTab = index;
+          if (index === 'dashboard') {
+            this.$nextTick(() => {
+              this.initCharts();
+            });
+          } else if (index === 'monitor') {
+            this.$nextTick(() => {
+              this.initMonitorCharts();
+            });
+          }
+        },
+        // 用户命令处理
+        handleCommand(command) {
+          if (command === 'logout') {
+            this.$message.success('已退出登录');
+          } else if (command === 'profile') {
+            this.$message.info('跳转到个人中心');
+          }
+        },
+        // 初始化图表
+        initCharts() {
+          // 请求量趋势图
+          const requestChart = echarts.init(this.$refs.requestChart);
+          requestChart.setOption({
+            tooltip: {
+              trigger: 'axis'
+            },
+            legend: {
+              data: ['请求量', '错误数']
+            },
+            grid: {
+              left: '3%',
+              right: '4%',
+              bottom: '3%',
+              containLabel: true
+            },
+            xAxis: {
+              type: 'category',
+              boundaryGap: false,
+              data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+            },
+            yAxis: {
+              type: 'value'
+            },
+            series: [
+              {
+                name: '请求量',
+                type: 'line',
+                data: [120, 132, 101, 134, 290, 230, 210],
+                smooth: true,
+                lineStyle: {
+                  color: '#409EFF'
+                },
+                areaStyle: {
+                  color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                    { offset: 0, color: 'rgba(64, 158, 255, 0.5)' },
+                    { offset: 1, color: 'rgba(64, 158, 255, 0.1)' }
+                  ])
+                }
+              },
+              {
+                name: '错误数',
+                type: 'line',
+                data: [5, 3, 2, 6, 12, 8, 4],
+                smooth: true,
+                lineStyle: {
+                  color: '#F56C6C'
+                }
+              }
+            ]
+          });
+
+          // 模型分布图
+          const modelChart = echarts.init(this.$refs.modelChart);
+          modelChart.setOption({
+            tooltip: {
+              trigger: 'item'
+            },
+            legend: {
+              orient: 'vertical',
+              right: 10,
+              top: 'center'
+            },
+            series: [
+              {
+                name: '模型分布',
+                type: 'pie',
+                radius: ['50%', '70%'],
+                avoidLabelOverlap: false,
+                itemStyle: {
+                  borderRadius: 10,
+                  borderColor: '#fff',
+                  borderWidth: 2
+                },
+                label: {
+                  show: false,
+                  position: 'center'
+                },
+                emphasis: {
+                  label: {
+                    show: true,
+                    fontSize: '18',
+                    fontWeight: 'bold'
+                  }
+                },
+                labelLine: {
+                  show: false
+                },
+                data: [
+                  { value: 1048, name: 'GPT-4' },
+                  { value: 735, name: 'Claude 3' },
+                  { value: 580, name: '文心一言' },
+                  { value: 484, name: '通义千问' },
+                  { value: 300, name: '其他' }
+                ]
+              }
+            ]
+          });
+        },
+        // 初始化监控图表
+        initMonitorCharts() {
+          // 请求趋势图
+          const requestTrendChart = echarts.init(this.$refs.requestTrendChart);
+          requestTrendChart.setOption({
+            tooltip: {
+              trigger: 'axis'
+            },
+            legend: {
+              data: ['总请求量', '成功请求', '失败请求']
+            },
+            grid: {
+              left: '3%',
+              right: '4%',
+              bottom: '3%',
+              containLabel: true
+            },
+            xAxis: {
+              type: 'category',
+              boundaryGap: false,
+              data: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00']
+            },
+            yAxis: {
+              type: 'value'
+            },
+            series: [
+              {
+                name: '总请求量',
+                type: 'line',
+                data: [120, 132, 101, 134, 290, 230, 210],
+                smooth: true,
+                lineStyle: {
+                  color: '#409EFF'
+                }
+              },
+              {
+                name: '成功请求',
+                type: 'line',
+                data: [115, 128, 98, 130, 280, 220, 205],
+                smooth: true,
+                lineStyle: {
+                  color: '#67C23A'
+                }
+              },
+              {
+                name: '失败请求',
+                type: 'line',
+                data: [5, 4, 3, 4, 10, 10, 5],
+                smooth: true,
+                lineStyle: {
+                  color: '#F56C6C'
+                }
+              }
+            ]
+          });
+
+          // 模型调用分布图
+          const modelCallChart = echarts.init(this.$refs.modelCallChart);
+          modelCallChart.setOption({
+            tooltip: {
+              trigger: 'item',
+              formatter: '{a} <br/>{b}: {c} ({d}%)'
+            },
+            legend: {
+              orient: 'vertical',
+              right: 10,
+              top: 'center'
+            },
+            series: [
+              {
+                name: '模型调用',
+                type: 'pie',
+                radius: ['50%', '70%'],
+                avoidLabelOverlap: false,
+                label: {
+                  show: false,
+                  position: 'center'
+                },
+                emphasis: {
+                  label: {
+                    show: true,
+                    fontSize: '18',
+                    fontWeight: 'bold'
+                  }
+                },
+                labelLine: {
+                  show: false
+                },
+                data: [
+                  { value: 1048, name: 'GPT-4' },
+                  { value: 735, name: 'Claude 3' },
+                  { value: 580, name: '文心一言' },
+                  { value: 484, name: '通义千问' }
+                ]
+              }
+            ]
+          });
+        },
+        // 首页方法
+        viewAllAgents() {
+          this.activeTab = 'agent';
+        },
+        // Agent管理方法
+        loadAgentList() {
+          // 模拟API请求
+          setTimeout(() => {
+            this.agentList = [
+              { id: 'AG1001', name: '客户服务助手', model: 'gpt4', status: 'prod', updateTime: '2023-10-15 14:30' },
+              { id: 'AG1002', name: '数据分析Agent', model: 'claude3', status: 'prod', updateTime: '2023-10-16 09:15' },
+              { id: 'AG1003', name: '内容创作助手', model: 'wenxin4', status: 'test', updateTime: '2023-10-17 16:45' },
+              { id: 'AG1004', name: '决策支持系统', model: 'gpt4', status: 'dev', updateTime: '2023-10-18 11:20' },
+              { id: 'AG1005', name: '产品推荐引擎', model: 'qwen', status: 'prod', updateTime: '2023-10-14 13:10' }
+            ];
+            this.pagination.total = 28;
+          }, 500);
+        },
+        showCreateDialog() {
+          this.editMode = false;
+          this.agentForm = {
+            id: '',
+            name: '',
+            description: '',
+            domain: '',
+            model: 'gpt4',
+            temperature: 0.7,
+            maxTokens: 2000,
+            topP: 1,
+            frequencyPenalty: 0,
+            presencePenalty: 0,
+            systemPrompt: '',
+            userPrompt: '',
+            knowledgeIds: [],
+            retrievalStrategy: 'vector',
+            topK: 3,
+            retrievalWeight: [0.7, 0.3],
+            memoryStrategies: ['short', 'long'],
+            memoryWindow: 5,
+            summaryLength: 200
+          };
+          this.agentDialogVisible = true;
+        },
+        editAgent(row) {
+          this.editMode = true;
+          this.agentForm = JSON.parse(JSON.stringify(row));
+          this.agentDialogVisible = true;
+        },
+        testAgent(row) {
+          this.$message.success(`开始测试Agent: ${row.name}`);
+        },
+        handleAgentCommand(command, row) {
+          if (command === 'publish') {
+            this.$confirm(`确定要发布Agent "${row.name}" 吗?`, '提示', {
+              confirmButtonText: '确定',
+              cancelButtonText: '取消',
+              type: 'warning'
+            }).then(() => {
+              this.$message.success('发布成功');
+            });
+          } else if (command === 'clone') {
+            this.$message.info(`克隆Agent: ${row.name}`);
+          } else if (command === 'delete') {
+            this.$confirm(`确定要删除Agent "${row.name}" 吗?`, '提示', {
+              confirmButtonText: '确定',
+              cancelButtonText: '取消',
+              type: 'warning'
+            }).then(() => {
+              this.$message.success('删除成功');
+            });
+          }
+        },
+        saveAgent() {
+          this.$refs.agentForm.validate((valid) => {
+            if (valid) {
+              this.$message.success(this.editMode ? '更新成功' : '创建成功');
+              this.agentDialogVisible = false;
+              this.loadAgentList();
+            }
+          });
+        },
+        handleSizeChange(val) {
+          this.pagination.pageSize = val;
+          this.loadAgentList();
+        },
+        handleCurrentChange(val) {
+          this.pagination.currentPage = val;
+          this.loadAgentList();
+        },
+        handleConfigMenuSelect(index) {
+          this.activeConfigPane = index;
+        },
+        handleKbConfigMenuSelect(index) {
+          this.activeKbConfigPane = index;
+        },
+        togglePlugin(plugin) {
+          this.$message.success(`${plugin.name}插件已${plugin.enabled ? '启用' : '禁用'}`);
+        },
+        addRouteRule() {
+          this.$prompt('请输入路由条件和目标', '添加路由规则', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            inputPattern: /.+/,
+            inputErrorMessage: '请输入有效内容'
+          }).then(({ value }) => {
+            const parts = value.split(':');
+            if (parts.length === 2) {
+              this.routeRules.push({
+                condition: parts[0].trim(),
+                target: parts[1].trim()
+              });
+              this.$message.success('路由规则添加成功');
+            } else {
+              this.$message.error('请输入格式为"条件:目标"的内容');
+            }
+          });
+        },
+        removeRouteRule(index) {
+          this.routeRules.splice(index, 1);
+          this.$message.success('路由规则已删除');
+        },
+        // 知识库管理方法
+        loadKnowledgeBases() {
+          // 模拟API请求
+          setTimeout(() => {
+            this.knowledgeBases = [
+              { id: 'KB1001', name: '产品知识库', type: 'vector', docCount: 24, updateTime: '2023-10-15 14:30', status: 'ready' },
+              { id: 'KB1002', name: '客户关系图谱', type: 'graph', docCount: 8, updateTime: '2023-10-16 09:15', status: 'ready' },
+              { id: 'KB1003', name: '技术文档库', type: 'vector', docCount: 56, updateTime: '2023-10-17 16:45', status: 'ready' },
+              { id: 'KB1004', name: '政策法规库', type: 'vector', docCount: 32, updateTime: '2023-10-18 11:20', status: 'processing' }
+            ];
+            this.kbPagination.total = 15;
+          }, 500);
+        },
+        showCreateKbDialog() {
+          this.currentKb = {
+            id: '',
+            name: '',
+            type: 'vector',
+            embeddingModel: 'bge-large',
+            chunkSize: 1024,
+            chunkOverlap: 200,
+            vectorDb: 'qdrant',
+            similarity: 'cosine'
+          };
+          this.kbDetailVisible = true;
+        },
+        viewKnowledgeBase(row) {
+          this.currentKb = JSON.parse(JSON.stringify(row));
+          this.loadKbDocuments();
+          this.kbDetailVisible = true;
+        },
+        editKnowledgeBase(row) {
+          this.currentKb = JSON.parse(JSON.stringify(row));
+          this.kbDetailVisible = true;
+        },
+        loadKbDocuments() {
+          // 模拟API请求
+          setTimeout(() => {
+            this.kbDocuments = [
+              { name: '产品手册_v2.1.pdf', size: '2.4MB', status: 'processed', updateTime: '2023-10-15 14:30' },
+              { name: '用户常见问题.docx', size: '1.1MB', status: 'processed', updateTime: '2023-10-16 09:15' },
+              { name: 'API文档.md', size: '0.8MB', status: 'processing', updateTime: '2023-10-17 16:45' }
+            ];
+          }, 300);
+        },
+        handleKbCommand(command, row) {
+          if (command === 'upload') {
+            this.viewKnowledgeBase(row);
+            this.activeKbTab = 'docs';
+          } else if (command === 'export') {
+            this.$message.info(`导出知识库: ${row.name}`);
+          } else if (command === 'delete') {
+            this.$confirm(`确定要删除知识库 "${row.name}" 吗?`, '提示', {
+              confirmButtonText: '确定',
+              cancelButtonText: '取消',
+              type: 'warning'
+            }).then(() => {
+              this.$message.success('删除成功');
+            });
+          }
+        },
+        beforeUpload(file) {
+          const isLt50M = file.size / 1024 / 1024 < 50;
+          if (!isLt50M) {
+            this.$message.error('上传文件大小不能超过 50MB!');
+          }
+          return isLt50M;
+        },
+        handleUploadSuccess(response, file, fileList) {
+          this.fileList = fileList;
+          this.$message.success('上传成功');
+          this.loadKbDocuments();
+        },
+        previewDoc(row) {
+          this.$message.info(`预览文档: ${row.name}`);
+        },
+        deleteDoc(row) {
+          this.$confirm(`确定要删除文档 "${row.name}" 吗?`, '提示', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }).then(() => {
+            this.$message.success('删除成功');
+            this.loadKbDocuments();
+          });
+        },
+        reprocessKb() {
+          this.$message.success('已开始重新处理知识库');
+        },
+        testVectorSearch() {
+          this.activeKbTab = 'test';
+        },
+        runTestQuery() {
+          // 模拟测试查询
+          setTimeout(() => {
+            this.testResults = [
+              { score: 0.9234, content: '产品X支持最高4K分辨率拍摄，内置128GB存储空间', source: '产品手册_v2.1.pdf' },
+              { score: 0.8567, content: '如何连接产品X到手机APP：1. 打开设备蓝牙 2. 在APP中选择添加设备', source: '用户常见问题.docx' },
+              { score: 0.7821, content: '产品X的保修期为24个月，覆盖主要零部件', source: '产品手册_v2.1.pdf' }
+            ];
+          }, 800);
+        },
+        handleKbSizeChange(val) {
+          this.kbPagination.pageSize = val;
+          this.loadKnowledgeBases();
+        },
+        handleKbCurrentChange(val) {
+          this.kbPagination.currentPage = val;
+          this.loadKnowledgeBases();
+        },
+        // 运行监控方法
+        refreshMetrics() {
+          this.$message.success('监控数据已刷新');
+          // 模拟数据变化
+          this.metrics = {
+            qps: Math.round(24 + Math.random() * 10),
+            qpsTrend: (Math.random() * 10).toFixed(1),
+            avgResponse: Math.round(350 + Math.random() * 50),
+            responseTrend: (-Math.random() * 5).toFixed(1),
+            errorRate: (Math.random() * 2).toFixed(1),
+            errorTrend: (Math.random() * 2).toFixed(1),
+            tokens: Math.round(12000 + Math.random() * 2000),
+            tokenTrend: (Math.random() * 15).toFixed(1)
+          };
+        },
+        loadRequestTrend() {
+          // 模拟不同时间范围的数据
+          const baseData = [120, 132, 101, 134, 290, 230, 210];
+          const factor = this.timeRange === '1h' ? 1 : (this.timeRange === '24h' ? 3 : 7);
+          
+          const requestTrendChart = echarts.getInstanceByDom(this.$refs.requestTrendChart);
+          requestTrendChart.setOption({
+            series: [
+              { data: baseData.map(v => v * factor) },
+              { data: baseData.map(v => v * factor * 0.95) },
+              { data: baseData.map(v => v * factor * 0.05) }
+            ]
+          });
+        },
+        loadErrorLogs() {
+          this.$message.success('错误日志已刷新');
+          // 模拟新增错误日志
+          const newError = {
+            time: new Date().toLocaleTimeString(),
+            agent: ['客户服务助手', '数据分析Agent', '内容创作助手', '决策支持系统'][Math.floor(Math.random() * 4)],
+            error: ['API调用超时', '无效的查询参数', '模型响应格式错误', '知识库连接失败'][Math.floor(Math.random() * 4)]
+          };
+          this.errorLogs.unshift(newError);
+          if (this.errorLogs.length > 10) {
+            this.errorLogs.pop();
+          }
+        },
+        viewErrorDetail(row) {
+          this.$alert(`<strong>错误详情：</strong><br>${row.error}<br><br><strong>时间：</strong>${row.time}<br><strong>Agent：</strong>${row.agent}`, '错误详情', {
+            dangerouslyUseHTMLString: true
+          });
+        },
+        // 系统设置方法
+        generateApiKey() {
+          this.$prompt('请输入密钥名称', '生成API密钥', {
+            confirmButtonText: '生成',
+            cancelButtonText: '取消',
+            inputPattern: /.+/,
+            inputErrorMessage: '请输入密钥名称'
+          }).then(({ value }) => {
+            const randomKey = 'sk-' + Math.random().toString(36).substring(2, 18) + Math.random().toString(36).substring(2, 18);
+            this.apiKeys.unshift({
+              name: value,
+              key: randomKey,
+              created: new Date().toLocaleString(),
+              lastUsed: '-',
+              active: true
+            });
+            this.$message.success('API密钥已生成');
+          });
+        },
+        copyApiKey(key) {
+          // 模拟复制到剪贴板
+          navigator.clipboard.writeText(key).then(() => {
+            this.$message.success('API密钥已复制到剪贴板');
+          });
+        },
+        toggleApiKey(row) {
+          this.$message.success(`API密钥"${row.name}"已${row.active ? '启用' : '禁用'}`);
+        },
+        deleteApiKey(row) {
+          this.$confirm(`确定要删除API密钥"${row.name}"吗?`, '提示', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }).then(() => {
+            const index = this.apiKeys.indexOf(row);
+            this.apiKeys.splice(index, 1);
+            this.$message.success('API密钥已删除');
+          });
+        },
+        saveSystemConfig() {
+          this.$message.success('系统配置已保存');
+        },
+        showAddUserDialog() {
+          this.userForm = {
+            username: '',
+            password: '',
+            confirmPassword: '',
+            role: 'developer',
+            active: true
+          };
+          this.userDialogVisible = true;
+        },
+        editUser(row) {
+          this.userForm = JSON.parse(JSON.stringify(row));
+          this.userForm.password = '';
+          this.userForm.confirmPassword = '';
+          this.userDialogVisible = true;
+        },
+        saveUser() {
+          if (this.userForm.password !== this.userForm.confirmPassword) {
+            this.$message.error('两次输入的密码不一致');
+            return;
+          }
+          
+          if (!this.userForm.username) {
+            this.$message.error('请输入用户名');
+            return;
+          }
+          
+          this.$message.success('用户信息已保存');
+          this.userDialogVisible = false;
+        },
+        deleteUser(row) {
+          this.$confirm(`确定要删除用户"${row.username}"吗?`, '提示', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }).then(() => {
+            const index = this.users.indexOf(row);
+            this.users.splice(index, 1);
+            this.$message.success('用户已删除');
+          });
+        },
+        restartService(row) {
+          this.$confirm(`确定要重启服务"${row.name}"吗?`, '提示', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }).then(() => {
+            row.status = 'running';
+            row.uptime = '0分钟';
+            this.$message.success('服务已重启');
+          });
+        },
+        startService(row) {
+          row.status = 'running';
+          row.uptime = '0分钟';
+          this.$message.success('服务已启动');
+        }
+      }
+    });
+  </script>
+</body>
+</html>
